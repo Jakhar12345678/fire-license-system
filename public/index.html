@@ -7,53 +7,64 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-    <div class="navbar">🚨 Fire License & Cylinder Tracker</div>
-
-    <div class="main-container">
-        <div class="card-box">
-            <h2 id="formTitle">Register New Cylinder/License</h2>
+    <div class="container">
+        <h1>Fire License Management Dashboard</h1>
+        
+        <div class="form-container">
+            <h2 id="form-title">Add New License Record</h2>
             <form id="licenseForm" enctype="multipart/form-data">
-                <input type="hidden" id="editId">
+                <input type="hidden" id="licenseId">
+                
+                <div class="form-group">
+                    <label for="name">Name:</label>
+                    <input type="text" id="name" name="name" required placeholder="Enter full name">
+                </div>
 
                 <div class="form-group">
-                    <label>User Name</label>
-                    <input type="text" id="name" placeholder="Enter Full Name" required>
+                    <label for="mobile">Mobile Number:</label>
+                    <input type="text" id="mobile" name="mobile" required placeholder="Enter 10-digit mobile number">
                 </div>
+
                 <div class="form-group">
-                    <label>Mobile Number</label>
-                    <input type="text" id="mobile" placeholder="Enter 10-digit Mobile" required>
+                    <label for="location">Location:</label>
+                    <input type="text" id="location" name="location" required placeholder="Enter area/city">
                 </div>
+
                 <div class="form-group">
-                    <label>Manual Address</label>
-                    <input type="text" id="address" placeholder="e.g. Moti Nagar Road No 2" required>
+                    <label for="address">Full Address:</label>
+                    <input type="text" id="address" name="address" required placeholder="Enter complete address">
                 </div>
+
                 <div class="form-group">
-                    <label>Google Map Link</label>
-                    <input type="text" id="location" placeholder="Paste Google Map Link here">
+                    <label for="quantity">Quantity:</label>
+                    <input type="number" id="quantity" name="quantity" required placeholder="Enter quantity">
                 </div>
+
                 <div class="form-group">
-                    <label>Quantity of Cylinder</label>
-                    <input type="number" id="quantity" placeholder="e.g. 5" required>
+                    <label for="expiryDate">Expiry Date:</label>
+                    <input type="date" id="expiryDate" name="expiryDate" required>
                 </div>
+
                 <div class="form-group">
-                    <label>Expiry Date</label>
-                    <input type="date" id="expiryDate" required>
+                    <label for="work">Work Description (Manually):</label>
+                    <input type="text" id="work" name="work" placeholder="Enter work details manually...">
                 </div>
+
                 <div class="form-group">
-                    <label id="photoLabel">Upload Photos (2-3)</label>
-                    <input type="file" id="photos" multiple accept="image/*">
+                    <label for="photos">Upload Photos (Max 5):</label>
+                    <input type="file" id="photos" name="photos" multiple accept="image/*">
                 </div>
-                
-                <button type="submit" id="submitBtn">Save Details</button>
-                <button type="button" id="cancelEditBtn" class="cancel-btn" style="display: none;">Cancel Edit</button>
+
+                <button type="submit" id="submitBtn">Save Record</button>
+                <button type="button" id="cancelBtn" style="display:none; background-color: #666;">Cancel Edit</button>
             </form>
         </div>
 
-        <div>
-            <h2>Live Tracker (Sorted by Near Expiry)</h2>
-            <div id="licenseList"></div>
-        </div>
+        <hr>
+
+        <h2>Saved Records (Sorted by Expiry Date)</h2>
+        <div id="recordsList" class="records-grid">
+            </div>
     </div>
 
     <script src="script.js"></script>

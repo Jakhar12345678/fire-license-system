@@ -13,7 +13,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public')); 
 
 // ==========================================
-// 1. DATABASE CONNECTION (Cloud MongoDB Atlas)
+// 1. DATABASE CONNECTION
 // ==========================================
 const cloudDB = 'mongodb+srv://Praveen:Praveen%40123@cluster0.7t8yqvy.mongodb.net/fireLicenseDB?retryWrites=true&w=majority&appName=Cluster0';
 
@@ -22,7 +22,7 @@ mongoose.connect(cloudDB)
 .catch((err) => console.error("Cloud DB Connection Error:", err));
 
 // ==========================================
-// 2. CLOUDINARY SETUP (Permanent Photo Storage)
+// 2. CLOUDINARY SETUP
 // ==========================================
 cloudinary.config({ 
   cloud_name: 'dshqbfxvx', 
@@ -30,18 +30,17 @@ cloudinary.config({
   api_secret: 'Kr5SNhzPOPXnG5zFXxSrxfJDd4' 
 });
 
-// Multer ko Cloudinary ke sath jodna
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
-    folder: 'fire_license_photos', // Cloudinary par is naam ka folder banega
+    folder: 'fire_license_photos',
     allowed_formats: ['jpg', 'png', 'jpeg'],
   },
 });
 const upload = multer({ storage: storage });
 
 // ==========================================
-// 3. DATABASE SCHEMA (Data Structure)
+// 3. DATABASE SCHEMA (Yahan 'work' jod diya hai)
 // ==========================================
 const LicenseSchema = new mongoose.Schema({
     name: String,
@@ -50,7 +49,8 @@ const LicenseSchema = new mongoose.Schema({
     address: String,  
     quantity: Number,
     expiryDate: Date,
-    photos: [String] // Isme ab Cloudinary ki permanent internet link save hogi
+    work: String, // 👈 Naya option manually work likhne ke liye
+    photos: [String]
 });
 const License = mongoose.model('License', LicenseSchema);
 
@@ -58,21 +58,16 @@ const License = mongoose.model('License', LicenseSchema);
 // 4. APIs (ALL ROUTES)
 // ==========================================
 
-// A. Naya Record Create Karna (POST)
+// A. Create
 app.post('/api/licenses', upload.array('photos', 5), async (req, res) => {
     try {
-        const { name, mobile, location, address, quantity, expiryDate } = req.body;
-        
-        // Cloudinary se aane wali secure permanent web links ko nikalna
+        const { name, mobile, location, address, quantity, expiryDate, work } = req.body;
         const filePaths = req.files.map(file => file.path);
         
         const newLicense = new License({ 
-            name, 
-            mobile, 
-            location, 
-            address, 
-            quantity, 
+            name, mobile, location, address, quantity, 
             expiryDate: new Date(expiryDate), 
+            work, // 👈 database me save hoga
             photos: filePaths 
         });
         
@@ -81,7 +76,7 @@ app.post('/api/licenses', upload.array('photos', 5), async (req, res) => {
     } catch (error) { res.status(500).json({ success: false, error: error.message }); }
 });
 
-// B. Saara Data Sorted Order Me Lana (GET)
+// B. Read
 app.get('/api/licenses', async (req, res) => {
     try {
         const data = await License.find().sort({ expiryDate: 1 });
@@ -89,11 +84,11 @@ app.get('/api/licenses', async (req, res) => {
     } catch (error) { res.status(500).json({ success: false, error: error.message }); }
 });
 
-// C. Record Ko Edit/Update Karna (PUT)
+// C. Update
 app.put('/api/licenses/:id', upload.array('photos', 5), async (req, res) => {
     try {
-        const { name, mobile, location, address, quantity, expiryDate } = req.body;
-        let updateData = { name, mobile, location, address, quantity, expiryDate: new Date(expiryDate) };
+        const { name, mobile, location, address, quantity, expiryDate, work } = req.body;
+        let updateData = { name, mobile, location, address, quantity, expiryDate: new Date(expiryDate), work };
         
         if (req.files && req.files.length > 0) {
             updateData.photos = req.files.map(file => file.path);
@@ -104,7 +99,7 @@ app.put('/api/licenses/:id', upload.array('photos', 5), async (req, res) => {
     } catch (error) { res.status(500).json({ success: false, error: error.message }); }
 });
 
-// D. Record Ko Delete Karna (DELETE)
+// D. Delete
 app.delete('/api/licenses/:id', async (req, res) => {
     try {
         await License.findByIdAndDelete(req.params.id);
@@ -112,5 +107,4 @@ app.delete('/api/licenses/:id', async (req, res) => {
     } catch (error) { res.status(500).json({ success: false, error: error.message }); }
 });
 
-// Server Start
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));

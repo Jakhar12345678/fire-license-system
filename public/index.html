@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fire License Management System</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="navbar">🚨 Fire License & Cylinder Tracker</div>
+
+    <div class="main-container">
+        <div class="card-box">
+            <h2 id="formTitle">Register New Cylinder/License</h2>
+            <form id="licenseForm" enctype="multipart/form-data">
+                <input type="hidden" id="editId">
+
+                <div class="form-group">
+                    <label>User Name</label>
+                    <input type="text" id="name" placeholder="Enter Full Name" required>
+                </div>
+                <div class="form-group">
+                    <label>Mobile Number</label>
+                    <input type="text" id="mobile" placeholder="Enter 10-digit Mobile" required>
+                </div>
+                <div class="form-group">
+                    <label>Manual Address</label>
+                    <input type="text" id="address" placeholder="e.g. Moti Nagar Road No 2" required>
+                </div>
+                <div class="form-group">
+                    <label>Google Map Link</label>
+                    <input type="text" id="location" placeholder="Paste Google Map Link here">
+                </div>
+                <div class="form-group">
+                    <label>Quantity of Cylinder</label>
+                    <input type="number" id="quantity" placeholder="e.g. 5" required>
+                </div>
+                <div class="form-group">
+                    <label>Expiry Date</label>
+                    <input type="date" id="expiryDate" required>
+                </div>
+                <div class="form-group">
+                    <label id="photoLabel">Upload Photos (2-3)</label>
+                    <input type="file" id="photos" multiple accept="image/*">
+                </div>
+                
+                <button type="submit" id="submitBtn">Save Details</button>
+                <button type="button" id="cancelEditBtn" class="cancel-btn" style="display: none;">Cancel Edit</button>
+            </form>
+        </div>
+
+        <div>
+            <h2>Live Tracker (Sorted by Near Expiry)</h2>
+            <div id="licenseList"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,8 +1,8 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -11,17 +11,10 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public')); 
-app.use('/uploads', express.static('uploads')); 
-
-// Uploads folder banana agar nahi hai toh
-if (!fs.existsSync('./uploads')) {
-    fs.mkdirSync('./uploads');
-}
 
 // ==========================================
 // 1. DATABASE CONNECTION (Cloud MongoDB Atlas)
 // ==========================================
-// Aapke username, password aur cluster ID ke sath complete link:
 const cloudDB = 'mongodb+srv://Praveen:Praveen%40123@cluster0.7t8yqvy.mongodb.net/fireLicenseDB?retryWrites=true&w=majority&appName=Cluster0';
 
 mongoose.connect(cloudDB)
@@ -29,27 +22,37 @@ mongoose.connect(cloudDB)
 .catch((err) => console.error("Cloud DB Connection Error:", err));
 
 // ==========================================
-// 2. DATABASE SCHEMA (Data Structure)
+// 2. CLOUDINARY SETUP (Permanent Photo Storage)
+// ==========================================
+cloudinary.config({ 
+  cloud_name: 'dshqbfxvx', 
+  api_key: '935725329258952', 
+  api_secret: 'Kr5SNhzPOPXnG5zFXxSrxfJDd4' 
+});
+
+// Multer ko Cloudinary ke sath jodna
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'fire_license_photos', // Cloudinary par is naam ka folder banega
+    allowed_formats: ['jpg', 'png', 'jpeg'],
+  },
+});
+const upload = multer({ storage: storage });
+
+// ==========================================
+// 3. DATABASE SCHEMA (Data Structure)
 // ==========================================
 const LicenseSchema = new mongoose.Schema({
     name: String,
     mobile: String,
-    location: String, // Google Map Link ke liye
-    address: String,  // Manual Address ke liye
+    location: String, 
+    address: String,  
     quantity: Number,
     expiryDate: Date,
-    photos: [String]
+    photos: [String] // Isme ab Cloudinary ki permanent internet link save hogi
 });
 const License = mongoose.model('License', LicenseSchema);
-
-// ==========================================
-// 3. MULTER SETUP (Image Uploads)
-// ==========================================
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => { cb(null, './uploads'); },
-    filename: (req, file, cb) => { cb(null, Date.now() + '-' + file.originalname); }
-});
-const upload = multer({ storage: storage });
 
 // ==========================================
 // 4. APIs (ALL ROUTES)
@@ -59,7 +62,9 @@ const upload = multer({ storage: storage });
 app.post('/api/licenses', upload.array('photos', 5), async (req, res) => {
     try {
         const { name, mobile, location, address, quantity, expiryDate } = req.body;
-        const filePaths = req.files.map(file => `/uploads/${file.filename}`);
+        
+        // Cloudinary se aane wali secure permanent web links ko nikalna
+        const filePaths = req.files.map(file => file.path);
         
         const newLicense = new License({ 
             name, 
@@ -91,7 +96,7 @@ app.put('/api/licenses/:id', upload.array('photos', 5), async (req, res) => {
         let updateData = { name, mobile, location, address, quantity, expiryDate: new Date(expiryDate) };
         
         if (req.files && req.files.length > 0) {
-            updateData.photos = req.files.map(file => `/uploads/${file.filename}`);
+            updateData.photos = req.files.map(file => file.path);
         }
 
         await License.findByIdAndUpdate(req.params.id, updateData);

@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             recordsList.innerHTML = '';
             if (!data || data.length === 0) {
-                recordsList.innerHTML = '<p>No records found.</p>';
+                recordsList.innerHTML = '<p style="text-align:center; width:100%;">No records found.</p>';
                 return;
             }
 
@@ -24,17 +24,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 const expiry = record.expiryDate ? new Date(record.expiryDate).toLocaleDateString('en-IN') : 'N/A';
                 
+                // Location format checking (Blue clickable link if it's a URL)
+                let locationHTML = 'N/A';
+                if (record.location) {
+                    if (record.location.startsWith('http://') || record.location.startsWith('https://')) {
+                        locationHTML = `<a href="${record.location}" target="_blank" style="color: #007bff; text-decoration: underline; font-weight: bold;">Open Google Map 📍</a>`;
+                    } else {
+                        locationHTML = record.location;
+                    }
+                }
+                
                 let photosHTML = '';
                 if (record.photos && record.photos.length > 0) {
                     record.photos.forEach(url => {
                         photosHTML += `<img src="${url}" class="record-img" alt="License Photo">`;
                     });
+                } else {
+                    photosHTML = '<p style="font-size:12px; color:#999; font-style:italic;">No Photos Uploaded</p>';
                 }
 
                 card.innerHTML = `
                     <h3>${record.name || 'N/A'}</h3>
                     <p><strong>Mobile:</strong> ${record.mobile || 'N/A'}</p>
-                    <p><strong>Location:</strong> ${record.location || 'N/A'}</p>
+                    <p><strong>Location:</strong> ${locationHTML}</p>
                     <p><strong>Address:</strong> ${record.address || 'N/A'}</p>
                     <p><strong>Quantity:</strong> ${record.quantity || 0}</p>
                     <p><strong>Expiry Date:</strong> <span class="expiry-text">${expiry}</span></p>
@@ -69,10 +81,10 @@ document.addEventListener('DOMContentLoaded', () => {
         formData.append('address', document.getElementById('address').value);
         formData.append('quantity', document.getElementById('quantity').value);
         formData.append('expiryDate', document.getElementById('expiryDate').value);
-        formData.append('work', document.getElementById('work').value);
+        formData.append('work', document.getElementById('work').value || '');
 
         const fileInput = document.getElementById('photos');
-        if (fileInput && fileInput.files) {
+        if (fileInput && fileInput.files && fileInput.files.length > 0) {
             for (let i = 0; i < fileInput.files.length; i++) {
                 formData.append('photos', fileInput.files[i]);
             }
@@ -98,11 +110,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 resetForm();
                 await loadRecords();
             } else {
-                alert('Error saving record: ' + result.error);
+                alert('Error saving record: ' + (result.error || 'Unknown error'));
             }
         } catch (err) {
             console.error('Error submitting form:', err);
-            alert('Something went wrong. Please try again.');
+            alert('Something went wrong. Please check connection.');
         } finally {
             submitBtn.disabled = false;
             submitBtn.innerText = id ? "Update Record" : "Save Record";

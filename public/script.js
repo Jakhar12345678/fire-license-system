@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await res.json();
             
             recordsList.innerHTML = '';
-            if (data.length === 0) {
+            if (!data || data.length === 0) {
                 recordsList.innerHTML = '<p>No records found.</p>';
                 return;
             }
@@ -22,10 +22,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const card = document.createElement('div');
                 card.className = 'record-card';
                 
-                // Expiry date format set karna
-                const expiry = new Date(record.expiryDate).toLocaleDateString('en-IN');
+                const expiry = record.expiryDate ? new Date(record.expiryDate).toLocaleDateString('en-IN') : 'N/A';
                 
-                // Photos check karna
                 let photosHTML = '';
                 if (record.photos && record.photos.length > 0) {
                     record.photos.forEach(url => {
@@ -34,13 +32,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 card.innerHTML = `
-                    <h3>${record.name}</h3>
-                    <p><strong>Mobile:</strong> ${record.mobile}</p>
-                    <p><strong>Location:</strong> ${record.location}</p>
-                    <p><strong>Address:</strong> ${record.address}</p>
-                    <p><strong>Quantity:</strong> ${record.quantity}</p>
+                    <h3>${record.name || 'N/A'}</h3>
+                    <p><strong>Mobile:</strong> ${record.mobile || 'N/A'}</p>
+                    <p><strong>Location:</strong> ${record.location || 'N/A'}</p>
+                    <p><strong>Address:</strong> ${record.address || 'N/A'}</p>
+                    <p><strong>Quantity:</strong> ${record.quantity || 0}</p>
                     <p><strong>Expiry Date:</strong> <span class="expiry-text">${expiry}</span></p>
-                    <p><strong>Work Details:</strong> ${record.work || 'N/A'}</p> <div class="img-gallery">${photosHTML}</div>
+                    <p><strong>Work Details:</strong> ${record.work || 'N/A'}</p>
+                    <div class="img-gallery">${photosHTML}</div>
                     <div class="card-actions">
                         <button class="edit-btn" data-id="${record._id}">Edit</button>
                         <button class="delete-btn" data-id="${record._id}">Delete</button>
@@ -49,7 +48,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 recordsList.appendChild(card);
             });
 
-            // Attach Event Listeners to Dynamically Created Buttons
             document.querySelectorAll('.delete-btn').forEach(btn => btn.addEventListener('click', deleteRecord));
             document.querySelectorAll('.edit-btn').forEach(btn => btn.addEventListener('click', startEdit));
 
@@ -71,11 +69,13 @@ document.addEventListener('DOMContentLoaded', () => {
         formData.append('address', document.getElementById('address').value);
         formData.append('quantity', document.getElementById('quantity').value);
         formData.append('expiryDate', document.getElementById('expiryDate').value);
-        formData.append('work', document.getElementById('work').value); // 👈 Server ko work bhejna
+        formData.append('work', document.getElementById('work').value);
 
         const fileInput = document.getElementById('photos');
-        for (let i = 0; i < fileInput.files.length; i++) {
-            formData.append('photos', fileInput.files[i]);
+        if (fileInput && fileInput.files) {
+            for (let i = 0; i < fileInput.files.length; i++) {
+                formData.append('photos', fileInput.files[i]);
+            }
         }
 
         let url = '/api/licenses';
@@ -87,17 +87,25 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
+            submitBtn.innerText = "Saving...";
+            submitBtn.disabled = true;
+
             const res = await fetch(url, { method: method, body: formData });
             const result = await res.json();
+            
             if (result.success) {
                 alert(id ? 'Record updated successfully!' : 'Record added successfully!');
                 resetForm();
-                loadRecords();
+                await loadRecords();
             } else {
                 alert('Error saving record: ' + result.error);
             }
         } catch (err) {
             console.error('Error submitting form:', err);
+            alert('Something went wrong. Please try again.');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerText = id ? "Update Record" : "Save Record";
         }
     });
 
@@ -111,17 +119,18 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (record) {
                 licenseIdInput.value = record._id;
-                document.getElementById('name').value = record.name;
-                document.getElementById('mobile').value = record.mobile;
-                document.getElementById('location').value = record.location;
-                document.getElementById('address').value = record.address;
-                document.getElementById('quantity').value = record.quantity;
-                document.getElementById('work').value = record.work || ''; // 👈 Edit karte waqt purana data lana
+                document.getElementById('name').value = record.name || '';
+                document.getElementById('mobile').value = record.mobile || '';
+                document.getElementById('location').value = record.location || '';
+                document.getElementById('address').value = record.address || '';
+                document.getElementById('quantity').value = record.quantity || '';
+                document.getElementById('work').value = record.work || '';
                 
-                // Date format adjust for input type="date"
-                const dateObj = new Date(record.expiryDate);
-                const formattedDate = dateObj.toISOString().split('T')[0];
-                document.getElementById('expiryDate').value = formattedDate;
+                if (record.expiryDate) {
+                    const dateObj = new Date(record.expiryDate);
+                    const formattedDate = dateObj.toISOString().split('T')[0];
+                    document.getElementById('expiryDate').value = formattedDate;
+                }
 
                 formTitle.innerText = "Edit License Record";
                 submitBtn.innerText = "Update Record";
@@ -144,7 +153,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (err) { console.error(err); }
     }
 
-    // Reset Form Utility
     function resetForm() {
         licenseForm.reset();
         licenseIdInput.value = '';

@@ -40,7 +40,7 @@ const storage = new CloudinaryStorage({
 const upload = multer({ storage: storage });
 
 // ==========================================
-// 3. DATABASE SCHEMA (Yahan 'work' jod diya hai)
+// 3. DATABASE SCHEMA
 // ==========================================
 const LicenseSchema = new mongoose.Schema({
     name: String,
@@ -49,7 +49,7 @@ const LicenseSchema = new mongoose.Schema({
     address: String,  
     quantity: Number,
     expiryDate: Date,
-    work: String, // 👈 Naya option manually work likhne ke liye
+    work: String, 
     photos: [String]
 });
 const License = mongoose.model('License', LicenseSchema);
@@ -58,16 +58,16 @@ const License = mongoose.model('License', LicenseSchema);
 // 4. APIs (ALL ROUTES)
 // ==========================================
 
-// A. Create
+// A. Create Record
 app.post('/api/licenses', upload.array('photos', 5), async (req, res) => {
     try {
         const { name, mobile, location, address, quantity, expiryDate, work } = req.body;
-        const filePaths = req.files.map(file => file.path);
+        const filePaths = req.files ? req.files.map(file => file.path) : [];
         
         const newLicense = new License({ 
             name, mobile, location, address, quantity, 
-            expiryDate: new Date(expiryDate), 
-            work, // 👈 database me save hoga
+            expiryDate: expiryDate ? new Date(expiryDate) : null, 
+            work, 
             photos: filePaths 
         });
         
@@ -76,7 +76,7 @@ app.post('/api/licenses', upload.array('photos', 5), async (req, res) => {
     } catch (error) { res.status(500).json({ success: false, error: error.message }); }
 });
 
-// B. Read
+// B. Read All Records
 app.get('/api/licenses', async (req, res) => {
     try {
         const data = await License.find().sort({ expiryDate: 1 });
@@ -84,12 +84,15 @@ app.get('/api/licenses', async (req, res) => {
     } catch (error) { res.status(500).json({ success: false, error: error.message }); }
 });
 
-// C. Update
+// C. Update Record
 app.put('/api/licenses/:id', upload.array('photos', 5), async (req, res) => {
     try {
         const { name, mobile, location, address, quantity, expiryDate, work } = req.body;
-        let updateData = { name, mobile, location, address, quantity, expiryDate: new Date(expiryDate), work };
+        let updateData = { name, mobile, location, address, quantity, work };
         
+        if (expiryDate) {
+            updateData.expiryDate = new Date(expiryDate);
+        }
         if (req.files && req.files.length > 0) {
             updateData.photos = req.files.map(file => file.path);
         }
@@ -99,7 +102,7 @@ app.put('/api/licenses/:id', upload.array('photos', 5), async (req, res) => {
     } catch (error) { res.status(500).json({ success: false, error: error.message }); }
 });
 
-// D. Delete
+// D. Delete Record
 app.delete('/api/licenses/:id', async (req, res) => {
     try {
         await License.findByIdAndDelete(req.params.id);

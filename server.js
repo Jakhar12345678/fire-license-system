@@ -58,37 +58,52 @@ const License = mongoose.model('License', LicenseSchema);
 // 4. APIs (ALL ROUTES)
 // ==========================================
 
-// A. Create Record
+// A. Create Record (POST)
 app.post('/api/licenses', upload.array('photos', 5), async (req, res) => {
     try {
+        console.log("Request Body Aayi:", req.body);
         const { name, mobile, location, address, quantity, expiryDate, work } = req.body;
-        const filePaths = req.files ? req.files.map(file => file.path) : [];
+        
+        let filePaths = [];
+        if (req.files && req.files.length > 0) {
+            filePaths = req.files.map(file => file.path);
+        }
         
         const newLicense = new License({ 
-            name, mobile, location, address, quantity, 
+            name, 
+            mobile, 
+            location, 
+            address, 
+            quantity: quantity ? Number(quantity) : 0, 
             expiryDate: expiryDate ? new Date(expiryDate) : null, 
-            work, 
+            work: work || '', 
             photos: filePaths 
         });
         
         await newLicense.save();
-        res.status(201).json({ success: true });
-    } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+        console.log("Data successfully save ho gaya MongoDB mein!");
+        return res.status(201).json({ success: true });
+    } catch (error) { 
+        console.error("POST Error Details:", error);
+        return res.status(500).json({ success: false, error: error.message }); 
+    }
 });
 
-// B. Read All Records
+// B. Read All Records (GET)
 app.get('/api/licenses', async (req, res) => {
     try {
         const data = await License.find().sort({ expiryDate: 1 });
-        res.status(200).json(data);
-    } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+        return res.status(200).json(data);
+    } catch (error) { 
+        return res.status(500).json({ success: false, error: error.message }); 
+    }
 });
 
-// C. Update Record
+// C. Update Record (PUT)
 app.put('/api/licenses/:id', upload.array('photos', 5), async (req, res) => {
     try {
         const { name, mobile, location, address, quantity, expiryDate, work } = req.body;
-        let updateData = { name, mobile, location, address, quantity, work };
+        let updateData = { name, mobile, location, address, quantity: quantity ? Number(quantity) : 0, work: work || '' };
         
         if (expiryDate) {
             updateData.expiryDate = new Date(expiryDate);
@@ -98,16 +113,20 @@ app.put('/api/licenses/:id', upload.array('photos', 5), async (req, res) => {
         }
 
         await License.findByIdAndUpdate(req.params.id, updateData);
-        res.status(200).json({ success: true });
-    } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+        return res.status(200).json({ success: true });
+    } catch (error) { 
+        return res.status(500).json({ success: false, error: error.message }); 
+    }
 });
 
-// D. Delete Record
+// D. Delete Record (DELETE)
 app.delete('/api/licenses/:id', async (req, res) => {
     try {
         await License.findByIdAndDelete(req.params.id);
-        res.status(200).json({ success: true });
-    } catch (error) { res.status(500).json({ success: false, error: error.message }); }
+        return res.status(200).json({ success: true });
+    } catch (error) { 
+        return res.status(500).json({ success: false, error: error.message }); 
+    }
 });
 
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));

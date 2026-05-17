@@ -22,12 +22,13 @@ mongoose.connect(cloudDB)
 .catch((err) => console.error("Cloud DB Connection Error:", err));
 
 // ==========================================
-// 2. CLOUDINARY SETUP
+// 2. CLOUDINARY HARDCODED BACKUP SETUP
 // ==========================================
+// Agar Render ke environment variables fail ho jayein, toh ye direct keys ko use karega
 cloudinary.config({ 
-  cloud_name: 'dshqbfxvx', 
-  api_key: '935725329258952', 
-  api_secret: 'Kr5SNhzPOPXnG5zFXxSrxfJDd4' 
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'dshqbfxvx', 
+  api_key: process.env.CLOUDINARY_API_KEY || '935725329258952', 
+  api_secret: process.env.CLOUDINARY_API_SECRET || 'Kr5SNhzPOPXnG5zFXxSrxfJDd4' 
 });
 
 const storage = new CloudinaryStorage({
@@ -38,6 +39,7 @@ const storage = new CloudinaryStorage({
   },
 });
 const upload = multer({ storage: storage });
+const dynamicUpload = upload.array('photos', 5);
 
 // ==========================================
 // 3. DATABASE SCHEMA
@@ -55,38 +57,38 @@ const LicenseSchema = new mongoose.Schema({
 const License = mongoose.model('License', LicenseSchema);
 
 // ==========================================
-// 4. APIs (ALL ROUTES)
+// 4. APIs
 // ==========================================
 
 // A. Create Record (POST)
-app.post('/api/licenses', upload.array('photos', 5), async (req, res) => {
-    try {
-        console.log("Request Body Aayi:", req.body);
-        const { name, mobile, location, address, quantity, expiryDate, work } = req.body;
-        
-        let filePaths = [];
-        if (req.files && req.files.length > 0) {
-            filePaths = req.files.map(file => file.path);
+app.post('/api/licenses', (req, res) => {
+    dynamicUpload(req, res, async function (err) {
+        if (err) {
+            console.error("Multer Upload Error:", err);
+            return res.status(500).json({ success: false, error: "Upload failed: " + err.message });
         }
-        
-        const newLicense = new License({ 
-            name, 
-            mobile, 
-            location, 
-            address, 
-            quantity: quantity ? Number(quantity) : 0, 
-            expiryDate: expiryDate ? new Date(expiryDate) : null, 
-            work: work || '', 
-            photos: filePaths 
-        });
-        
-        await newLicense.save();
-        console.log("Data successfully save ho gaya MongoDB mein!");
-        return res.status(201).json({ success: true });
-    } catch (error) { 
-        console.error("POST Error Details:", error);
-        return res.status(500).json({ success: false, error: error.message }); 
-    }
+        try {
+            const { name, mobile, location, address, quantity, expiryDate, work } = req.body;
+            let filePaths = [];
+            if (req.files && req.files.length > 0) {
+                filePaths = req.files.map(file => file.path);
+            }
+            
+            const newLicense = new License({ 
+                name, mobile, location, address, 
+                quantity: quantity ? Number(quantity) : 0, 
+                expiryDate: expiryDate ? new Date(expiryDate) : null, 
+                work: work || '', 
+                photos: filePaths 
+            });
+            
+            await newLicense.save();
+            return res.status(201).json({ success: true });
+        } catch (error) { 
+            console.error("Database Save Error:", error);
+            return res.status(500).json({ success: false, error: error.message }); 
+        }
+    });
 });
 
 // B. Read All Records (GET)
@@ -100,23 +102,30 @@ app.get('/api/licenses', async (req, res) => {
 });
 
 // C. Update Record (PUT)
-app.put('/api/licenses/:id', upload.array('photos', 5), async (req, res) => {
-    try {
-        const { name, mobile, location, address, quantity, expiryDate, work } = req.body;
-        let updateData = { name, mobile, location, address, quantity: quantity ? Number(quantity) : 0, work: work || '' };
-        
-        if (expiryDate) {
-            updateData.expiryDate = new Date(expiryDate);
+app.put('/api/licenses/:id', (req, res) => {
+    dynamicUpload(req, res, async function (err) {
+        if (err) {
+            console.error("Multer Update Error:", err);
+            return res.status(500).json({ success: false, error: "Update upload failed: " + err.message });
         }
-        if (req.files && req.files.length > 0) {
-            updateData.photos = req.files.map(file => file.path);
-        }
+        try {
+            const { name, mobile, location, address, quantity, expiryDate, work } = req.body;
+            let updateData = { name, mobile, location, address, quantity: quantity ? Number(quantity) : 0, work: work || '' };
+            
+            if (expiryDate) {
+                updateData.expiryDate = new Date(expiryDate);
+            }
+            if (req.files && req.files.length > 0) {
+                updateData.photos = req.files.map(file => file.path);
+            }
 
-        await License.findByIdAndUpdate(req.params.id, updateData);
-        return res.status(200).json({ success: true });
-    } catch (error) { 
-        return res.status(500).json({ success: false, error: error.message }); 
-    }
+            await License.findByIdAndUpdate(req.params.id, updateData);
+            return res.status(200).json({ success: true });
+        } catch (error) { 
+            console.error("Database Update Error:", error);
+            return res.status(500).json({ success: false, error: error.message }); 
+        }
+    });
 });
 
 // D. Delete Record (DELETE)
@@ -129,4 +138,4 @@ app.delete('/api/licenses/:id', async (req, res) => {
     }
 });
 
-app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
